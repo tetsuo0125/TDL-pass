@@ -1,0 +1,48 @@
+name: Fetch Wait Times
+
+on:
+  schedule:
+    - cron: '*/5 0-14 * * *'   # UTC 0〜14時 = JST 9〜23時、5分ごと
+  workflow_dispatch:             # 手動実行も可能
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch TDL wait times
+        run: |
+          curl -sf "https://queue-times.com/parks/274/queue_times.json" \
+            -H "Accept: application/json" \
+            -o tdl.json || echo '{"lands":[],"rides":[]}' > tdl.json
+
+      - name: Fetch TDS wait times
+        run: |
+          curl -sf "https://queue-times.com/parks/275/queue_times.json" \
+            -H "Accept: application/json" \
+            -o tds.json || echo '{"lands":[],"rides":[]}' > tds.json
+
+      - name: Add timestamp
+        run: |
+          python3 -c "
+          import json, datetime, sys
+
+          for fname, park in [('tdl.json','tdl'),('tds.json','tds')]:
+              with open(fname) as f:
+                  data = json.load(f)
+              data['updated'] = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9))).strftime('%H:%M')
+              with open(fname,'w') as f:
+                  json.dump(data, f, ensure_ascii=False)
+          print('done')
+          "
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add tdl.json tds.json
+          git diff --staged --quiet || git commit -m "chore: update wait times $(date +'%H:%M JST')"
+          git push
