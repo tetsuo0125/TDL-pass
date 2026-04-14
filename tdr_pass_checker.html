@@ -476,16 +476,34 @@ function ft(d){return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}
 function g(id){return document.getElementById(id)}
 
 /* ===== API ===== */
-function fetchWT(pk2,cb){
-  fetch('https://queue-times.com/parks/'+D[pk2].id+'/queue_times.json')
-    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
-    .then(function(j){
-      var m={};
-      (j.lands||[]).forEach(function(l){(l.rides||[]).forEach(function(r){m[r.name]=r})});
-      (j.rides||[]).forEach(function(r){m[r.name]=r});
-      ac[pk2]=m;cb(null,m);
-    })
-    .catch(function(e){cb(e,null)});
+/* CORSプロキシ経由でAPIを叩く（複数フォールバック） */
+var PROXIES = [
+  'https://corsproxy.io/?',
+  'https://api.allorigins.win/raw?url='
+];
+
+function fetchWT(pk2, cb) {
+  var url = 'https://queue-times.com/parks/' + D[pk2].id + '/queue_times.json';
+  var idx = 0;
+
+  function tryNext() {
+    if (idx >= PROXIES.length) { cb(new Error('all proxies failed'), null); return; }
+    var proxyUrl = PROXIES[idx] + encodeURIComponent(url);
+    idx++;
+    fetch(proxyUrl, {cache:'no-store'})
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(j) {
+        var m = {};
+        (j.lands || []).forEach(function(l) {
+          (l.rides || []).forEach(function(r) { m[r.name] = r; });
+        });
+        (j.rides || []).forEach(function(r) { m[r.name] = r; });
+        ac[pk2] = m;
+        cb(null, m);
+      })
+      .catch(function() { tryNext(); });
+  }
+  tryNext();
 }
 
 function applyWT(pk2,m){
