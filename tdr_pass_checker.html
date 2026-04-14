@@ -476,28 +476,37 @@ function ft(d){return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}
 function g(id){return document.getElementById(id)}
 
 /* ===== API ===== */
-/* CORSプロキシ経由でAPIを叩く（複数フォールバック） */
-var PROXIES = [
-  'https://corsproxy.io/?',
-  'https://api.allorigins.win/raw?url='
-];
-
 function fetchWT(pk2, cb) {
-  var url = 'https://queue-times.com/parks/' + D[pk2].id + '/queue_times.json';
+  var baseUrl = 'https://queue-times.com/parks/' + D[pk2].id + '/queue_times.json';
+
+  /* 試すURLを順番に */
+  var attempts = [
+    baseUrl,                                                              /* 直接（CORSヘッダーあり） */
+    'https://corsproxy.io/?url=' + encodeURIComponent(baseUrl),          /* プロキシ1 */
+    'https://api.allorigins.win/raw?url=' + encodeURIComponent(baseUrl)  /* プロキシ2 */
+  ];
   var idx = 0;
 
   function tryNext() {
-    if (idx >= PROXIES.length) { cb(new Error('all proxies failed'), null); return; }
-    var proxyUrl = PROXIES[idx] + encodeURIComponent(url);
-    idx++;
-    fetch(proxyUrl, {cache:'no-store'})
-      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    if (idx >= attempts.length) {
+      cb(new Error('全て失敗'), null);
+      return;
+    }
+    var u = attempts[idx++];
+    fetch(u, {cache: 'no-store'})
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      })
       .then(function(j) {
+        /* alloriginsはcontentsにラップされる場合がある */
+        if (j && j.contents) { j = JSON.parse(j.contents); }
         var m = {};
         (j.lands || []).forEach(function(l) {
           (l.rides || []).forEach(function(r) { m[r.name] = r; });
         });
         (j.rides || []).forEach(function(r) { m[r.name] = r; });
+        if (Object.keys(m).length === 0) throw new Error('empty');
         ac[pk2] = m;
         cb(null, m);
       })
@@ -516,16 +525,16 @@ function applyWT(pk2,m){
 
 function loadWT(){
   var btn=g('reloadBtn');
-  if(btn){btn.classList.add('spin')}
+  if(btn) btn.classList.add('spin');
   g('updTime').textContent='取得中...';
   showSk();
-  fetchWT(pk,function(err,m){
-    if(btn)btn.classList.remove('spin');
-    if(!err&&m){
-      applyWT(pk,m);
-      g('updTime').textContent=ft(new Date())+' 取得';
-    }else{
-      g('updTime').textContent='取得失敗';
+  fetchWT(pk, function(err, m){
+    if(btn) btn.classList.remove('spin');
+    if(!err && m){
+      applyWT(pk, m);
+      g('updTime').textContent = ft(new Date()) + ' 取得';
+    } else {
+      g('updTime').textContent = '取得失敗（タップして再試行）';
     }
     renderL();
   });
