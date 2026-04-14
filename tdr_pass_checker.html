@@ -477,42 +477,51 @@ function g(id){return document.getElementById(id)}
 
 /* ===== API ===== */
 function fetchWT(pk2, cb) {
-  var baseUrl = 'https://queue-times.com/parks/' + D[pk2].id + '/queue_times.json';
+  var parkId = D[pk2].id;
+  var target = 'https://queue-times.com/parks/' + parkId + '/queue_times.json';
 
-  /* 試すURLを順番に */
-  var attempts = [
-    baseUrl,                                                              /* 直接（CORSヘッダーあり） */
-    'https://corsproxy.io/?url=' + encodeURIComponent(baseUrl),          /* プロキシ1 */
-    'https://api.allorigins.win/raw?url=' + encodeURIComponent(baseUrl)  /* プロキシ2 */
-  ];
-  var idx = 0;
+  function parseMap(j) {
+    var m = {};
+    (j.lands || []).forEach(function(l) {
+      (l.rides || []).forEach(function(r) { m[r.name] = r; });
+    });
+    (j.rides || []).forEach(function(r) { m[r.name] = r; });
+    return m;
+  }
 
-  function tryNext() {
-    if (idx >= attempts.length) {
-      cb(new Error('全て失敗'), null);
-      return;
-    }
-    var u = attempts[idx++];
-    fetch(u, {cache: 'no-store'})
+  function tryUrl(fetchUrl, label, next) {
+    g('updTime').textContent = label + ' 試行中...';
+    fetch(fetchUrl, {cache: 'no-store'})
       .then(function(r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
         return r.json();
       })
       .then(function(j) {
-        /* alloriginsはcontentsにラップされる場合がある */
-        if (j && j.contents) { j = JSON.parse(j.contents); }
-        var m = {};
-        (j.lands || []).forEach(function(l) {
-          (l.rides || []).forEach(function(r) { m[r.name] = r; });
-        });
-        (j.rides || []).forEach(function(r) { m[r.name] = r; });
-        if (Object.keys(m).length === 0) throw new Error('empty');
+        /* allorigins /get は {contents: "..."} 形式 */
+        if (j && typeof j.contents === 'string') { j = JSON.parse(j.contents); }
+        var m = parseMap(j);
+        if (!Object.keys(m).length) throw new Error('empty');
         ac[pk2] = m;
         cb(null, m);
       })
-      .catch(function() { tryNext(); });
+      .catch(function(e) {
+        console.warn('[TDR] ' + label + ' 失敗:', e);
+        next();
+      });
   }
-  tryNext();
+
+  /* 試す順番 */
+  var enc = encodeURIComponent(target);
+  var step3 = function() { cb(new Error('all failed'), null); };
+  var step2 = function() {
+    tryUrl('https://api.allorigins.win/get?url=' + enc, 'allorigins', step3);
+  };
+  var step1 = function() {
+    tryUrl('https://api.codetabs.com/v1/proxy?quest=' + enc, 'codetabs', step2);
+  };
+
+  /* まず直接 */
+  tryUrl(target, '直接', step1);
 }
 
 function applyWT(pk2,m){
