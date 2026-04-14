@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1628">
+<link rel="manifest" href="./manifest.json">
+<title>TDR パスチェッカー</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Outfit:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0a1628;--mid:#152238;
+  --dpa:#ff8c42;--dpa-bg:#2a1a08;
+  --pp:#4ade80;--pp-bg:#0a2318;
+  --tx:#e8eef8;--mu:#7a91b0;
+  --bd:rgba(255,255,255,.08);
+  --c:rgba(255,255,255,.04);--ch:rgba(255,255,255,.07);
+  --r:16px;--rs:10px;
+  --tdl:#f0c060;--tds:#60b8f0;
+  --sb:env(safe-area-inset-bottom,0px);
+  --st:env(safe-area-inset-top,0px);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;scroll-behavior:smooth}
+body{
+  font-family:'Zen Maru Gothic',-apple-system,sans-serif;
+  background:var(--navy);color:var(--tx);
+  min-height:100dvh;overflow-x:hidden;
+  -webkit-tap-highlight-color:transparent;
+  overscroll-behavior-y:contain;
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:
+    radial-gradient(1px 1px at 8% 12%,rgba(255,255,255,.55) 0%,transparent 100%),
+    radial-gradient(1px 1px at 28% 38%,rgba(255,255,255,.3) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 52% 18%,rgba(255,255,255,.45) 0%,transparent 100%),
+    radial-gradient(1px 1px at 73% 58%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 88% 8%,rgba(255,255,255,.5) 0%,transparent 100%),
+    radial-gradient(1px 1px at 18% 68%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1.5px 1.5px at 62% 78%,rgba(255,255,255,.35) 0%,transparent 100%),
+    radial-gradient(1px 1px at 4% 88%,rgba(255,255,255,.25) 0%,transparent 100%),
+    radial-gradient(1px 1px at 44% 52%,rgba(255,255,255,.2) 0%,transparent 100%),
+    radial-gradient(1px 1px at 96% 42%,rgba(255,255,255,.3) 0%,transparent 100%);
+}
+.wrap{
+  max-width:480px;margin:0 auto;position:relative;z-index:1;
+  padding:max(20px,var(--st)) 16px calc(40px + var(--sb));
+}
+
+/* ── Header ── */
+.hdr{text-align:center;padding:20px 0 16px}
+.hdr-ico{
+  font-size:46px;display:block;margin-bottom:8px;line-height:1;
+  animation:fl 4s ease-in-out infinite;
+  filter:drop-shadow(0 0 16px rgba(240,192,96,.55));
+  transition:filter .5s;
+}
+.hdr-ico.sea{filter:drop-shadow(0 0 16px rgba(96,184,240,.55))}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.hdr-h1{
+  font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;
+  letter-spacing:.5px;transition:color .4s;
+}
+.hdr-h1.tdl{color:var(--tdl)}.hdr-h1.tds{color:var(--tds)}
+.hdr-sub{font-size:11px;color:var(--mu);margin-top:3px;letter-spacing:.3px}
+
+/* ── Park switcher ── */
+.park-sw{
+  display:grid;grid-template-columns:1fr 1fr;
+  border-radius:14px;overflow:hidden;
+  border:1px solid var(--bd);margin-bottom:12px;
+}
+.park-btn{
+  padding:13px 8px;font-family:inherit;font-size:13px;font-weight:700;
+  text-align:center;background:var(--c);color:var(--mu);border:none;
+  line-height:1.4;touch-action:manipulation;
+  user-select:none;-webkit-user-select:none;-webkit-appearance:none;
+  cursor:pointer;transition:background .2s,color .2s;
+}
+.park-btn:first-child{border-right:1px solid var(--bd)}
+.park-btn .pe{font-size:20px;display:block;margin-bottom:3px}
+.park-btn.active.tdl{background:rgba(240,192,96,.12);color:var(--tdl)}
+.park-btn.active.tds{background:rgba(96,184,240,.1);color:var(--tds)}
+.park-btn:active:not(.active){background:var(--ch)}
+
+/* ── Tab bar ── */
+.tab-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tab-btn{
+  padding:11px 8px;border-radius:var(--r);
+  border:1px solid var(--bd);background:var(--c);color:var(--mu);
+  font-family:inherit;font-size:12px;font-weight:500;cursor:pointer;
+  text-align:center;line-height:1.4;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-appearance:none;
+  transition:all .2s;
+}
+.tab-btn .tl{font-size:13px;display:block;margin-bottom:2px}
+.tab-btn .ts{font-size:10px;opacity:.7}
+.tab-btn.active.dpa{background:var(--dpa-bg);border-color:var(--dpa);color:var(--dpa)}
+.tab-btn.active.pp{background:var(--pp-bg);border-color:var(--pp);color:var(--pp)}
+.tab-btn:active:not(.active){background:var(--ch)}
+
+/* ── Update bar ── */
+.upd-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:12px;padding:8px 12px;
+  background:var(--c);border:1px solid var(--bd);border-radius:var(--rs);
+}
+.upd-info{font-size:11px;color:var(--mu)}
+.upd-info b{color:var(--tx);font-weight:700}
+.reload-btn{
+  min-height:32px;padding:0 12px;
+  font-size:11px;border-radius:99px;
+  border:1px solid var(--bd);background:transparent;color:var(--mu);
+  cursor:pointer;touch-action:manipulation;-webkit-appearance:none;
+  font-family:inherit;transition:all .15s;display:flex;align-items:center;gap:4px;
+}
+.reload-btn:active{background:var(--ch);color:var(--tx)}
+.reload-btn.spin .ri{display:inline-block;animation:sp .8s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+
+/* ── Timer ── */
+.tmr{
+  border-radius:var(--r);padding:14px 16px;
+  margin-bottom:12px;border:1px solid;
+  transition:box-shadow .3s,border-color .3s;
+}
+.tmr.dpa{background:var(--dpa-bg);border-color:rgba(255,140,66,.35)}
+.tmr.pp {background:var(--pp-bg); border-color:rgba(74,222,128,.35)}
+.tmr.done.dpa{border-color:var(--dpa);box-shadow:0 0 16px rgba(255,140,66,.2)}
+.tmr.done.pp {border-color:var(--pp); box-shadow:0 0 16px rgba(74,222,128,.2)}
+.tmr-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.tmr-lbl{font-size:11px;font-weight:700;line-height:1.4}
+.tmr-lbl.dpa{color:var(--dpa)}.tmr-lbl.pp{color:var(--pp)}
+.tmr-rst{
+  font-size:10px;padding:5px 11px;border-radius:99px;border:1px solid;
+  background:transparent;cursor:pointer;font-family:inherit;
+  touch-action:manipulation;-webkit-appearance:none;transition:opacity .15s;
+  min-height:28px;
+}
+.tmr-rst.dpa{color:var(--dpa);border-color:rgba(255,140,66,.4)}
+.tmr-rst.pp {color:var(--pp); border-color:rgba(74,222,128,.4)}
+.tmr-rst:active{opacity:.6}
+
+.tmr-sel{
+  display:block;width:100%;
+  padding:12px 36px 12px 12px;margin-bottom:10px;
+  background:rgba(255,255,255,.06);border:1px solid var(--bd);
+  border-radius:var(--rs);color:var(--tx);
+  font-family:inherit;font-size:14px;
+  -webkit-appearance:none;appearance:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a91b0' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;
+  cursor:pointer;min-height:44px;
+}
+.tmr-sel:focus{outline:none;border-color:rgba(255,255,255,.2)}
+.tmr-sel option{background:#152238;color:var(--tx)}
+
+.tmr-atag{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;margin-bottom:10px;
+  border-radius:99px;font-size:12px;font-weight:700;border:1px solid;
+}
+.tmr.dpa .tmr-atag{background:rgba(255,140,66,.15);border-color:rgba(255,140,66,.4);color:var(--dpa)}
+.tmr.pp  .tmr-atag{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.35);color:var(--pp)}
+
+.tmr-idle{font-size:12px;color:var(--mu);margin-bottom:10px;line-height:1.6}
+
+.tmr-go{
+  display:block;width:100%;min-height:48px;padding:0 16px;
+  border-radius:var(--rs);border:1px solid;background:transparent;
+  font-family:inherit;font-size:14px;font-weight:700;
+  cursor:pointer;touch-action:manipulation;-webkit-appearance:none;
+  transition:background .15s;display:flex;align-items:center;justify-content:center;
+}
+.tmr-go.dpa{color:var(--dpa);border-color:var(--dpa)}
+.tmr-go.dpa:active{background:rgba(255,140,66,.12)}
+.tmr-go.pp {color:var(--pp); border-color:var(--pp)}
+.tmr-go.pp:active{background:rgba(74,222,128,.12)}
+
+.tmr-disp{display:flex;align-items:baseline;gap:6px;margin-bottom:8px}
+.tmr-cnt{
+  font-family:'Outfit',sans-serif;font-size:52px;font-weight:700;
+  line-height:1;letter-spacing:-2px;
+}
+.tmr-cnt.dpa{color:var(--dpa)}.tmr-cnt.pp{color:var(--pp)}.tmr-cnt.wh{color:#fff}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.45}}
+.tmr-cnt.run{animation:pu 2s ease-in-out infinite}
+.tmr-unit{font-size:14px;color:var(--mu)}
+
+.tmr-bar{height:5px;background:rgba(255,255,255,.08);border-radius:3px;overflow:hidden;margin-bottom:10px}
+.tmr-bar-f{height:100%;border-radius:3px;transition:width 1s linear}
+.tmr-bar-f.dpa{background:var(--dpa)}.tmr-bar-f.pp{background:var(--pp)}
+
+.tmr-info{font-size:12px;color:var(--mu);margin-bottom:10px;line-height:1.6}
+.tmr-info b{color:var(--tx)}
+.tmr-info.alert.dpa{color:var(--dpa);font-weight:700}
+.tmr-info.alert.pp {color:var(--pp); font-weight:700}
+
+.tmr-ok{font-size:15px;font-weight:700;margin-bottom:10px}
+.tmr-ok.dpa{color:var(--dpa)}.tmr-ok.pp{color:var(--pp)}
+
+.tmr-2btn{display:grid;grid-template-columns:1fr auto;gap:8px}
+.tmr-clr{
+  min-height:48px;padding:0 16px;border-radius:var(--rs);
+  border:1px solid var(--bd);background:transparent;
+  font-family:inherit;font-size:12px;color:var(--mu);
+  cursor:pointer;touch-action:manipulation;-webkit-appearance:none;
+  white-space:nowrap;display:flex;align-items:center;
+}
+.tmr-clr:active{background:var(--ch)}
+
+/* ── Legend ── */
+.leg{
+  display:flex;gap:14px;margin-bottom:12px;
+  padding:9px 12px;background:var(--c);
+  border-radius:var(--rs);border:1px solid var(--bd);
+}
+.leg-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--mu)}
+.leg-d{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+
+/* ── Section label ── */
+.sec-lbl{
+  font-size:10px;font-weight:700;color:var(--mu);
+  letter-spacing:1px;text-transform:uppercase;margin-bottom:10px;
+}
+
+/* ── Attraction cards ── */
+.alist{display:flex;flex-direction:column;gap:10px}
+.card{
+  background:var(--c);border:1px solid var(--bd);border-radius:var(--r);
+  padding:14px 14px;display:flex;align-items:center;gap:12px;
+  cursor:pointer;animation:su .3s ease both;
+  touch-action:manipulation;user-select:none;-webkit-user-select:none;
+  -webkit-appearance:none;transition:background .15s,transform .1s;
+}
+.card:nth-child(1){animation-delay:.04s}.card:nth-child(2){animation-delay:.08s}
+.card:nth-child(3){animation-delay:.12s}.card:nth-child(4){animation-delay:.16s}
+.card:nth-child(5){animation-delay:.2s} .card:nth-child(6){animation-delay:.24s}
+.card:nth-child(7){animation-delay:.28s}
+@keyframes su{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.card:active{background:var(--ch);transform:scale(.99)}
+.cico{
+  width:46px;height:46px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.cico.dpa{background:rgba(255,140,66,.12)}
+.cico.pp {background:rgba(74,222,128,.1)}
+.cbod{flex:1;min-width:0}
+.cnm{font-size:13px;font-weight:700;color:var(--tx);line-height:1.3;margin-bottom:3px}
+.car{font-size:11px;color:var(--mu);margin-bottom:5px}
+.wbt{height:3px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden}
+.wbf{height:100%;border-radius:2px}
+.crt{text-align:right;flex-shrink:0;min-width:60px}
+.wnum{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;line-height:1}
+.wmin{font-size:10px;color:var(--mu);margin-top:1px}
+.ptag{font-size:11px;font-weight:600;margin-top:4px;color:var(--dpa)}
+.wst{font-size:11px;font-weight:700;color:var(--mu)}
+
+.wl{color:#4ade80}.bl{background:#4ade80}
+.wm{color:#fbbf24}.bm{background:#fbbf24}
+.wh2{color:#f87171}.bh{background:#f87171}
+
+/* skeleton */
+.sk{
+  height:74px;border-radius:var(--r);
+  border:1px solid var(--bd);
+  background:linear-gradient(90deg,var(--c) 25%,rgba(255,255,255,.06) 50%,var(--c) 75%);
+  background-size:200% 100%;animation:skl 1.4s ease infinite;
+}
+.sk:nth-child(2){animation-delay:.15s}.sk:nth-child(3){animation-delay:.3s}
+@keyframes skl{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+/* powered */
+.pwr{text-align:center;font-size:10px;color:var(--mu);margin-top:4px}
+.pwr a{color:var(--mu);text-decoration:underline}
+
+/* ── Detail modal ── */
+.ov{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.65);z-index:99;
+  -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+}
+.ov.open{display:block}
+.det{
+  display:none;position:fixed;bottom:0;left:0;right:0;
+  background:var(--mid);border-top:1px solid var(--bd);
+  border-radius:20px 20px 0 0;
+  padding:18px 20px calc(28px + var(--sb));
+  z-index:100;max-height:82vh;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.det.open{display:block;animation:sup .28s ease}
+@keyframes sup{from{transform:translateY(28px);opacity:0}to{transform:translateY(0);opacity:1}}
+.det-hdl{width:36px;height:4px;background:rgba(255,255,255,.2);border-radius:2px;margin:0 auto 14px}
+.det-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.det-tw{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.det-ico{
+  width:44px;height:44px;border-radius:12px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:22px;
+}
+.det-ico.dpa{background:rgba(255,140,66,.12)}.det-ico.pp{background:rgba(74,222,128,.1)}
+.det-ttl{font-size:15px;font-weight:700;color:var(--tx);line-height:1.3}
+.xbtn{
+  background:rgba(255,255,255,.08);border:none;color:var(--mu);
+  width:34px;height:34px;border-radius:50%;font-size:18px;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;touch-action:manipulation;-webkit-appearance:none;
+  transition:background .15s;
+}
+.xbtn:active{background:rgba(255,255,255,.18)}
+.drows{border-top:1px solid var(--bd)}
+.drow{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid var(--bd);font-size:13px;
+  gap:8px;
+}
+.drow:last-child{border-bottom:none}
+.dlbl{color:var(--mu);flex-shrink:0}
+.dval{color:var(--tx);font-weight:500;text-align:right}
+.hint{
+  margin-top:12px;background:rgba(255,255,255,.04);
+  border:1px solid var(--bd);border-radius:var(--rs);
+  padding:12px 14px;font-size:12px;color:var(--mu);line-height:1.75;
+}
+
+/* ── In-app banner ── */
+.bnr{
+  position:fixed;top:max(16px,var(--st));left:50%;
+  transform:translateX(-50%);
+  width:calc(100% - 32px);max-width:440px;
+  background:#1e2d40;border:1px solid rgba(255,255,255,.15);
+  border-radius:var(--r);padding:12px 16px;
+  display:flex;align-items:flex-start;gap:10px;
+  z-index:200;box-shadow:0 8px 28px rgba(0,0,0,.45);
+  animation:bi .3s ease;cursor:pointer;
+}
+.bnr.hide{animation:bo .3s ease forwards;pointer-events:none}
+@keyframes bi{from{opacity:0;transform:translateX(-50%) translateY(-14px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes bo{from{opacity:1;transform:translateX(-50%) translateY(0)}to{opacity:0;transform:translateX(-50%) translateY(-14px)}}
+.bnr-ico{font-size:24px;flex-shrink:0;line-height:1}
+.bnr-tx{flex:1;min-width:0}
+.bnr-t{font-size:13px;font-weight:700;color:var(--tx);margin-bottom:2px}
+.bnr-b{font-size:11px;color:var(--mu)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hdr">
+    <span class="hdr-ico" id="ico">&#127984;</span>
+    <h1 class="hdr-h1 tdl" id="ttl">TDL パスチェッカー</h1>
+    <p class="hdr-sub" id="sub">東京ディズニーランド / DPA・プライオリティパス対象</p>
+  </div>
+
+  <div class="park-sw">
+    <button class="park-btn active tdl" data-park="tdl"><span class="pe">&#127984;</span>ディズニーランド</button>
+    <button class="park-btn tds" data-park="tds"><span class="pe">&#127754;</span>ディズニーシー</button>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn active dpa" data-tab="dpa">
+      <span class="tl">&#128179; DPA</span>
+      <span class="ts">有料・時間指定あり</span>
+    </button>
+    <button class="tab-btn pp" data-tab="pp">
+      <span class="tl">&#127903; プライオリティパス</span>
+      <span class="ts">無料・時間はランダム</span>
+    </button>
+  </div>
+
+  <div class="upd-bar">
+    <div class="upd-info">待ち時間：<b id="updTime">取得中...</b></div>
+    <button class="reload-btn" id="reloadBtn"><span class="ri">&#128260;</span> 更新</button>
+  </div>
+
+  <div id="sec-dpa">
+    <div class="tmr dpa" id="tmr-dpa">
+      <div class="tmr-top">
+        <span class="tmr-lbl dpa">&#9201; DPAタイマー（次購入まで60分）</span>
+        <button class="tmr-rst dpa" id="rst-dpa">リセット</button>
+      </div>
+      <div id="body-dpa"></div>
+    </div>
+    <div class="leg">
+      <div class="leg-i"><div class="leg-d" style="background:#4ade80"></div>〜20分</div>
+      <div class="leg-i"><div class="leg-d" style="background:#fbbf24"></div>21〜60分</div>
+      <div class="leg-i"><div class="leg-d" style="background:#f87171"></div>61分〜</div>
+    </div>
+    <div class="sec-lbl">対象アトラクション（2026年4月時点）</div>
+    <div class="alist" id="list-dpa"></div>
+  </div>
+
+  <div id="sec-pp" style="display:none">
+    <div class="tmr pp" id="tmr-pp">
+      <div class="tmr-top">
+        <span class="tmr-lbl pp">&#9201; PPタイマー（次取得まで120分）</span>
+        <button class="tmr-rst pp" id="rst-pp">リセット</button>
+      </div>
+      <div id="body-pp"></div>
+    </div>
+    <div class="leg">
+      <div class="leg-i"><div class="leg-d" style="background:#4ade80"></div>〜20分</div>
+      <div class="leg-i"><div class="leg-d" style="background:#fbbf24"></div>21〜60分</div>
+      <div class="leg-i"><div class="leg-d" style="background:#f87171"></div>61分〜</div>
+    </div>
+    <div class="sec-lbl">対象アトラクション（2026年4月時点）</div>
+    <div class="alist" id="list-pp"></div>
+  </div>
+
+  <p class="pwr"><a href="https://queue-times.com/en-US" target="_blank" rel="noopener">Powered by Queue-Times.com</a></p>
+</div>
+
+<div class="ov" id="ov"></div>
+<div class="det" id="det">
+  <div class="det-hdl"></div>
+  <div class="det-hdr">
+    <div class="det-tw">
+      <div class="det-ico dpa" id="det-ico"></div>
+      <div class="det-ttl" id="det-ttl"></div>
+    </div>
+    <button class="xbtn" id="xbtn">&#10005;</button>
+  </div>
+  <div class="drows" id="det-rows"></div>
+  <div class="hint" id="det-hint"></div>
+</div>
+
+<script>
+(function(){
+'use strict';
+
+/* ===== DATA ===== */
+var D={
+  tdl:{id:274,dpa:[
+    {i:1,e:'\u{1F339}',n:'\u7F8E\u5973\u3068\u91CE\u7363\u201C\u9B54\u6CD5\u306E\u3082\u306E\u304C\u305F\u308A\u201D',a:'Enchanted Tale of Beauty and the Beast',ar:'\u30D5\u30A1\u30F3\u30BF\u30B8\u30FC\u30E9\u30F3\u30C9',w:null,pr:'2,000\u5186/\u56DE',kid:true,ht:null,note:'\u5727\u5012\u7684\u4EBA\u6C17No.1\u3002DPA\u306F\u5165\u56F3\u5F8C\u3059\u304F\u8CFC\u5165\u5FC5\u9808\u3002\u58F2\u308A\u5207\u308C\u304C\u6700\u3082\u65E9\u3044\u30024\u4EBA\u5BB6\u65CF\u30688,000\u5186\u306B\u306A\u308B\u70B9\u306B\u6CE8\u610F\u3002'},
+    {i:2,e:'\u{1F916}',n:'\u30D9\u30A4\u30DE\u30C3\u30AF\u30B9\u306E\u30CF\u30C3\u30D4\u30FC\u30E9\u30A4\u30C9',a:'The Happy Ride with Baymax',ar:'\u30C8\u30A5\u30E2\u30ED\u30FC\u30E9\u30F3\u30C9',w:null,pr:'1,500\u5186/\u56DE',kid:true,ht:null,note:'\u5B50\u9023\u308C\u25CE\u30FB\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002\u958B\u56F3\u5F8C\u65E9\u3044\u6642\u9593\u306B\u58F2\u308A\u5207\u308C\u308B\u3053\u3068\u3082\u3002'},
+    {i:3,e:'\u{1F4A6}',n:'\u30B9\u30D7\u30E9\u30C3\u30B7\u30E5\u30FB\u30DE\u30A6\u30F3\u30C6\u30F3',a:'Splash Mountain',ar:'\u30AF\u30EA\u30C3\u30BF\u30FC\u30AB\u30F3\u30C8\u30EA\u30FC',w:null,pr:'1,500\u5186/\u56DE',kid:false,ht:'102cm\u4EE5\u4E0A',note:'\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08102cm\u4EE5\u4E0A\uFF09\u3002\u305A\u3076\u6FC3\u308C\u6CE8\u610F\u3002\u30DD\u30F3\u30C1\u30E7\u6301\u53C2\u63A8\u5968\u3002'}
+  ],pp:[
+    {i:4,e:'\u26F0',n:'\u30D3\u30C3\u30B0\u30B5\u30F3\u30C0\u30FC\u30FB\u30DE\u30A6\u30F3\u30C6\u30F3',a:'Big Thunder Mountain',ar:'\u30A6\u30A8\u30B9\u30BF\u30F3\u30E9\u30F3\u30C9',w:null,pr:'\u7121\u6599',kid:false,ht:'102cm\u4EE5\u4E0A',note:'\u7D76\u53EB\u7CFB\u5B9A\u756A\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08102cm\u4EE5\u4E0A\uFF09\u3002\u6DF7\u96D1\u65E5\u3067\u3082\u663C\u904E\u304E\u307E\u3067\u767A\u5238\u3057\u3066\u3044\u308B\u3053\u3068\u304C\u591A\u3044\u3002'},
+    {i:5,e:'\u{1F36F}',n:'\u30D7\u30FC\u3055\u3093\u306E\u30CF\u30CB\u30FC\u30CF\u30F3\u30C8',a:"Pooh's Hunny Hunt",ar:'\u30D5\u30A1\u30F3\u30BF\u30B8\u30FC\u30E9\u30F3\u30C9',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'\u5BB6\u65CF\u9023\u308C\u306B\u5927\u4EBA\u6C17\u3002\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002\u5348\u524D\u4E2D\u306B\u767A\u5238\u7D42\u4E86\u3059\u308B\u3053\u3068\u304C\u591A\u3044\u3002\u5165\u56F3\u5F8C\u3059\u304F\u53D6\u5F97\u63A8\u5968\u3002'},
+    {i:6,e:'\u{1F47E}',n:'\u30E2\u30F3\u30B9\u30BF\u30FC\u30BA\u30FB\u30A4\u30F3\u30AF\u201C\u30E9\u30A4\u30C9\uFF06\u30B4\u30FC\u30B7\u30FC\u30AF\uFF01\u201D',a:'Monsters, Inc. Ride & Go Seek!',ar:'\u30C8\u30A5\u30E2\u30ED\u30FC\u30E9\u30F3\u30C9',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'\u30E9\u30A4\u30C8\u3067\u7167\u3089\u3057\u3066\u30E2\u30F3\u30B9\u30BF\u30FC\u3092\u63A2\u3059\u4F53\u9A13\u578B\u3002\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002\u4EBA\u6C17\u9AD8\u304F\u65E9\u3081\u306E\u53D6\u5F97\u3092\u3002'},
+    {i:7,e:'\u{1F47B}',n:'\u30DB\u30FC\u30F3\u30C6\u30C3\u30C9\u30DE\u30F3\u30B7\u30E7\u30F3',a:'Haunted Mansion',ar:'\u30D5\u30A1\u30F3\u30BF\u30B8\u30FC\u30E9\u30F3\u30C9',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'\u671F\u9593\u9650\u5B9A\u30D0\u30FC\u30B8\u30E7\u30F3\u306B\u306A\u308B\u3053\u3068\u3082\u3002\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002\u6BD4\u8F03\u7684\u4F59\u88D5\u3042\u308A\u3002'},
+    {i:8,e:'\u{1F680}',n:'\u30B9\u30BF\u30FC\u30FB\u30C4\u30A2\u30FC\u30BA\uFF1A\u30B6\u30FB\u30A2\u30C9\u30D9\u30F3\u30C1\u30E3\u30FC\u30BA\u30FB\u30B3\u30F3\u30C6\u30A3\u30CB\u30E5\u30FC',a:'Star Tours: The Adventures Continue',ar:'\u30C8\u30A5\u30E2\u30ED\u30FC\u30E9\u30F3\u30C9',w:null,pr:'\u7121\u6599',kid:false,ht:'102cm\u4EE5\u4E0A',note:'\u6620\u50CF\u30D1\u30BF\u30FC\u30F3\u304C\u8C4A\u5BCC\u3067\u6BCE\u56DE\u9055\u3046\u4F53\u9A13\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08102cm\u4EE5\u4E0A\uFF09\u3002'}
+  ]},
+  tds:{id:275,dpa:[
+    {i:11,e:'\u2744',n:'\u30A2\u30CA\u3068\u30A8\u30EB\u30B5\u306E\u30D5\u30ED\u30FC\u30BA\u30F3\u30B8\u30E3\u30FC\u30CB\u30FC',a:"Anna and Elsa's Frozen Journey",ar:'\u30D5\u30A1\u30F3\u30BF\u30B8\u30FC\u30B9\u30D7\u30EA\u30F3\u30B0\u30B9',w:null,pr:'2,000\u5186/\u56DE',kid:true,ht:null,note:'FS\u30A8\u30EA\u30A2\u5185\u3002\u58F2\u308A\u5207\u308C\u6700\u901F\u30AF\u30E9\u30B9\u3002\u5165\u56F3\u5F8C\u3059\u304F\u8CFC\u5165\u5FC5\u9808\u3002'},
+    {i:12,e:'\u2728',n:'\u30D4\u30FC\u30BF\u30FC\u30D1\u30F3\u306E\u30CD\u30D0\u30FC\u30E9\u30F3\u30C9\u30A2\u30C9\u30D9\u30F3\u30C1\u30E3\u30FC',a:"Peter Pan's Never Land Adventure",ar:'\u30D5\u30A1\u30F3\u30BF\u30B8\u30FC\u30B9\u30D7\u30EA\u30F3\u30B0\u30B9',w:null,pr:'2,000\u5186/\u56DE',kid:true,ht:null,note:'FS\u30A8\u30EA\u30A2\u5185\u3002\u7A7A\u3092\u98DB\u3076\u6F14\u51FA\u304C\u4EBA\u6C17\u3002\u5B50\u9023\u308C\u25CE\u30FB\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002'},
+    {i:13,e:'\u{1F3EE}',n:'\u30E9\u30D7\u30F3\u30C4\u30A7\u30EB\u306E\u30E9\u30F3\u30BF\u30F3\u30D5\u30A7\u30B9\u30C6\u30A3\u30D0\u30EB',a:"Rapunzel's Lantern Festival",ar:'\u30D5\u30A1\u30F3\u30BF\u30B8\u30FC\u30B9\u30D7\u30EA\u30F3\u30B0\u30B9',w:null,pr:'2,000\u5186/\u56DE',kid:true,ht:null,note:'FS\u30A8\u30EA\u30A2\u5185\u3002\u5B9A\u756A\u30E9\u30F3\u30BF\u30F3\u306E\u4E16\u754C\u3002\u5348\u524D\u4E2D\u306B\u58F2\u308A\u5207\u308C\u308B\u3053\u3068\u304C\u591A\u3044\u3002'},
+    {i:14,e:'\u{1F30F}',n:'\u30BD\u30A2\u30EA\u30F3\uFF1A\u30D5\u30A1\u30F3\u30BF\u30B9\u30C6\u30A3\u30C3\u30AF\u30FB\u30D5\u30E9\u30A4\u30C8',a:'Soaring: Fantastic Flight',ar:'\u30DD\u30FC\u30C8\u30C7\u30A3\u30B9\u30AB\u30D0\u30EA\u30FC',w:null,pr:'2,000\u5186/\u56DE',kid:true,ht:'102cm\u4EE5\u4E0A',note:'\u5E38\u306B\u5927\u884C\u5217\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08102cm\u4EE5\u4E0A\uFF09\u3002DPA\u3092\u4F7F\u308F\u306A\u3044\u3068\u9577\u6642\u9593\u5F85\u3061\u78BA\u5B9A\u3002'},
+    {i:15,e:'\u{1F3AF}',n:'\u30C8\u30A4\u30FB\u30B9\u30C8\u30FC\u30EA\u30FC\u30FB\u30DE\u30CB\u30A2\uFF01',a:'Toy Story Mania!',ar:'\u30A2\u30E1\u30EA\u30AB\u30F3\u30A6\u30A9\u30FC\u30BF\u30FC\u30D5\u30ED\u30F3\u30C8',w:null,pr:'2,000\u5186/\u56DE',kid:true,ht:null,note:'\u30B2\u30FC\u30E0\u5F62\u5F0F\u306E\u30B7\u30E5\u30FC\u30C6\u30A3\u30F3\u30B0\u30E9\u30A4\u30C9\u3002\u5B50\u9023\u308C\u25CE\u30FB\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002'},
+    {i:16,e:'\u{1F5FC}',n:'\u30BF\u30EF\u30FC\u30FB\u30AA\u30D6\u30FB\u30C6\u30E9\u30FC',a:'Tower of Terror',ar:'\u30A2\u30E1\u30EA\u30AB\u30F3\u30A6\u30A9\u30FC\u30BF\u30FC\u30D5\u30ED\u30F3\u30C8',w:null,pr:'1,500\u5186/\u56DE',kid:false,ht:'102cm\u4EE5\u4E0A',note:'\u5782\u76F4\u843D\u4E0B\u7CFB\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08102cm\u4EE5\u4E0A\uFF09\u3002DPA\u3067\u78BA\u5B9F\u306B\u4F53\u9A13\u3092\u3002'},
+    {i:17,e:'\u{1F30B}',n:'\u30BB\u30F3\u30BF\u30FC\u30FB\u30AA\u30D6\u30FB\u30B8\u30FB\u30A2\u30FC\u30B9',a:'Journey to the Center of the Earth',ar:'\u30DF\u30B9\u30C6\u30EA\u30A2\u30B9\u30A4\u30E9\u30F3\u30C9',w:null,pr:'1,500\u5186/\u56DE',kid:false,ht:'117cm\u4EE5\u4E0A',note:'\u5730\u5E95\u63A2\u691C\u30E9\u30A4\u30C9\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08117cm\u4EE5\u4E0A\uFF09\u3002TDS\u5C48\u6307\u306E\u4EBA\u6C17\u30A2\u30C8\u30E9\u30AF\u30B7\u30E7\u30F3\u3002'}
+  ],pp:[
+    {i:21,e:'\u{1FAA8}',n:'\u30A4\u30F3\u30C7\u30A3\u30FB\u30B8\u30E7\u30FC\u30F3\u30BA\u30FB\u30A2\u30C9\u30D9\u30F3\u30C1\u30E3\u30FC\uFF1A\u30AF\u30EA\u30B9\u30BF\u30EB\u30B9\u30AB\u30EB\u306E\u9B54\u5BAE',a:'Indiana Jones Adventure\u00ae: Temple of the Crystal Skull',ar:'\u30ED\u30B9\u30C8\u30EA\u30D0\u30FC\u30C7\u30EB\u30BF',w:null,pr:'\u7121\u6599',kid:false,ht:'117cm\u4EE5\u4E0A',note:'PP1\u756A\u4EBA\u6C17\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08117cm\u4EE5\u4E0A\uFF09\u3002\u8FEB\u529B\u306E\u9B54\u5BAE\u63A2\u691C\u3002\u5348\u524D\u4E2D\u306B\u767A\u5238\u7D42\u4E86\u3059\u308B\u3053\u3068\u304C\u591A\u3044\u3002'},
+    {i:22,e:'\u{1F300}',n:'\u30EC\u30A4\u30B8\u30F3\u30B0\u30B9\u30D4\u30EA\u30C3\u30C4',a:'Raging Spirits',ar:'\u30ED\u30B9\u30C8\u30EA\u30D0\u30FC\u30C7\u30EB\u30BF',w:null,pr:'\u7121\u6599',kid:false,ht:'117cm\u4EE5\u4E0A',note:'360\u5EA6\u56DE\u8EE2\u30B3\u30FC\u30B9\u30BF\u30FC\u3002\u8EAB\u9577\u5236\u9650\u3042\u308A\uFF08117cm\u4EE5\u4E0A\uFF09\u3002\u30B9\u30BF\u30F3\u30D0\u30A4\u3060\u3068\u5E38\u306B\u6DF7\u96D1\u3002'},
+    {i:23,e:'\u{1F422}',n:'\u30BF\u30FC\u30C8\u30EB\u30FB\u30C8\u30FC\u30AF',a:'Turtle Talk',ar:'\u30A2\u30E1\u30EA\u30AB\u30F3\u30A6\u30A9\u30FC\u30BF\u30FC\u30D5\u30ED\u30F3\u30C8',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'\u30AF\u30E9\u30C3\u30B7\u30E5\u3068\u4F1A\u8A71\u3067\u304D\u308B\u30A4\u30F3\u30BF\u30E9\u30AF\u30C6\u30A3\u30D6\u30B7\u30A2\u30BF\u30FC\u3002\u6BD4\u8F03\u7684\u4F59\u88D5\u3042\u308A\u3002'},
+    {i:24,e:'\u{1F420}',n:'\u30CB\u30E2\uFF06\u30D5\u30EC\u30F3\u30BA\u30FB\u30B7\u30FC\u30E9\u30A4\u30C0\u30FC',a:'Nemo & Friends SeaRider',ar:'\u30DD\u30FC\u30C8\u30C7\u30A3\u30B9\u30AB\u30D0\u30EA\u30FC',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'\u6D77\u306E\u4E16\u754C\u3092\u5192\u967A\u3002\u5B50\u9023\u308C\u25CE\u30FB\u8EAB\u9577\u5236\u9650\u306A\u3057\u3002\u5165\u56F3\u5F8C\u65E9\u3081\u306B\u53D6\u5F97\u63A8\u5968\u3002'},
+    {i:25,e:'\u{1FA94}',n:'\u30DE\u30B8\u30C3\u30AF\u30E9\u30F3\u30D7\u30B7\u30A2\u30BF\u30FC',a:'The Magic Lamp Theater',ar:'\u30A2\u30E9\u30D3\u30A2\u30F3\u30B3\u30FC\u30B9\u30C8',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'3D\u30B7\u30A2\u30BF\u30FC\u3002\u6BD4\u8F03\u7684\u4F59\u88D5\u3042\u308A\u3002\u5348\u5F8C\u3067\u3082\u6B8B\u3063\u3066\u3044\u308B\u3053\u3068\u304C\u591A\u3044\u3002'},
+    {i:26,e:'\u{1F52D}',n:'\u6D77\u5E952\u4E07\u30DE\u30A4\u30EB',a:'20,000 Leagues Under the Sea',ar:'\u30DF\u30B9\u30C6\u30EA\u30A2\u30B9\u30A4\u30E9\u30F3\u30C9',w:null,pr:'\u7121\u6599',kid:true,ht:null,note:'\u5C0F\u578B\u6F5C\u6C34\u8247\u3067\u6DF1\u6D77\u3078\u3002\u6BD4\u8F03\u7684\u4F59\u88D5\u3042\u308A\u3002\u30B7\u30FC\u3089\u3057\u3044\u96F0\u56F2\u6C17\u3092\u6E80\u55AB\u3067\u304D\u308B\u6F5C\u6C34\u8247\u30E9\u30A4\u30C9\u3002'}
+  ]}
+};
+
+/* ===== STATE ===== */
+var pk='tdl',tb='dpa';
+var TS={dpa:null,pp:null};
+var DUR={dpa:3600,pp:7200};
+var bt=null,ac={tdl:null,tds:null};
+
+/* ===== UTILS ===== */
+function wc(w){return w<=20?'wl':w<=60?'wm':'wh2'}
+function bc(w){return w<=20?'bl':w<=60?'bm':'bh'}
+function es(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function ft(d){return d.getHours()+':'+String(d.getMinutes()).padStart(2,'0')}
+function g(id){return document.getElementById(id)}
+
+/* ===== API ===== */
+function fetchWT(pk2,cb){
+  fetch('https://queue-times.com/parks/'+D[pk2].id+'/queue_times.json')
+    .then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})
+    .then(function(j){
+      var m={};
+      (j.lands||[]).forEach(function(l){(l.rides||[]).forEach(function(r){m[r.name]=r})});
+      (j.rides||[]).forEach(function(r){m[r.name]=r});
+      ac[pk2]=m;cb(null,m);
+    })
+    .catch(function(e){cb(e,null)});
+}
+
+function applyWT(pk2,m){
+  D[pk2].dpa.concat(D[pk2].pp).forEach(function(a){
+    if(!m)return;
+    var f=m[a.a];
+    if(f)a.w=f.is_open?f.wait_time:-1;
+  });
+}
+
+function loadWT(){
+  var btn=g('reloadBtn');
+  if(btn){btn.classList.add('spin')}
+  g('updTime').textContent='取得中...';
+  showSk();
+  fetchWT(pk,function(err,m){
+    if(btn)btn.classList.remove('spin');
+    if(!err&&m){
+      applyWT(pk,m);
+      g('updTime').textContent=ft(new Date())+' 取得';
+    }else{
+      g('updTime').textContent='取得失敗';
+    }
+    renderL();
+  });
+}
+
+function showSk(){
+  var sk='<div class="sk"></div><div class="sk"></div><div class="sk"></div>';
+  g('list-dpa').innerHTML=sk;g('list-pp').innerHTML=sk;
+}
+
+/* ===== RENDER CARDS ===== */
+function mkCard(a,t){
+  var w=a.w;
+  var bar='',right='';
+  if(w===null){
+    right='<div class="wst">--</div><div class="wmin">取得中</div>';
+  }else if(w<0){
+    right='<div class="wst">運休中</div>';
+  }else{
+    var bw=Math.min(100,Math.round((w/100)*100));
+    bar='<div class="wbt"><div class="wbf '+bc(w)+'" style="width:'+bw+'%"></div></div>';
+    right='<div class="wnum '+wc(w)+'">'+w+'</div><div class="wmin">分待ち</div>'
+      +(t==='dpa'?'<div class="ptag">'+es(a.pr)+'</div>':'');
+  }
+  return '<div class="card" data-id="'+a.i+'">'
+    +'<div class="cico '+t+'">'+a.e+'</div>'
+    +'<div class="cbod">'
+    +'<div class="cnm">'+es(a.n)+'</div>'
+    +'<div class="car">'+es(a.ar)+(a.ht?' / '+a.ht:'')+'</div>'
+    +bar+'</div>'
+    +'<div class="crt">'+right+'</div></div>';
+}
+
+function renderL(){
+  var d=D[pk];
+  g('list-dpa').innerHTML=d.dpa.map(function(a){return mkCard(a,'dpa')}).join('');
+  g('list-pp').innerHTML =d.pp.map(function(a){return mkCard(a,'pp')}).join('');
+  document.querySelectorAll('.card[data-id]').forEach(function(c){
+    c.addEventListener('click',function(){openDet(+c.getAttribute('data-id'))});
+  });
+}
+
+/* ===== HEADER ===== */
+function updHdr(){
+  var tl=pk==='tdl';
+  g('ico').textContent=tl?'\u{1F3F0}':'\u{1F30A}';
+  g('ico').className='hdr-ico'+(tl?'':' sea');
+  g('ttl').textContent=tl?'TDL パスチェッカー':'TDS パスチェッカー';
+  g('ttl').className='hdr-h1 '+(tl?'tdl':'tds');
+  g('sub').textContent=tl
+    ?'東京ディズニーランド / DPA・プライオリティパス対象'
+    :'東京ディズニーシー / DPA・プライオリティパス対象';
+}
+
+/* ===== PARK / TAB SWITCH ===== */
+document.querySelectorAll('.park-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    var p=b.getAttribute('data-park');
+    if(p===pk)return;
+    pk=p;
+    document.querySelectorAll('.park-btn').forEach(function(x){x.classList.remove('active')});
+    b.classList.add('active');
+    updHdr();
+    if(ac[pk]){applyWT(pk,ac[pk]);renderL();loadWT();}
+    else loadWT();
+  });
+});
+
+document.querySelectorAll('.tab-btn').forEach(function(b){
+  b.addEventListener('click',function(){
+    tb=b.getAttribute('data-tab');
+    document.querySelectorAll('.tab-btn').forEach(function(x){x.classList.remove('active')});
+    b.classList.add('active');
+    g('sec-dpa').style.display=tb==='dpa'?'block':'none';
+    g('sec-pp').style.display =tb==='pp' ?'block':'none';
+  });
+});
+
+g('reloadBtn').addEventListener('click',function(){loadWT()});
+
+/* ===== DETAIL ===== */
+function getA(id){
+  var all=D.tdl.dpa.concat(D.tdl.pp,D.tds.dpa,D.tds.pp);
+  for(var i=0;i<all.length;i++)if(all[i].i===id)return all[i];
+  return null;
+}
+function isDpa(a){
+  var d=D.tdl.dpa.concat(D.tds.dpa);
+  for(var i=0;i<d.length;i++)if(d[i].i===a.i)return true;
+  return false;
+}
+function wdisp(a){
+  if(a.w===null)return '<span style="color:var(--mu)">取得中...</span>';
+  if(a.w<0) return '<span style="color:var(--mu)">運休中</span>';
+  return '<span class="'+wc(a.w)+'" style="font-size:20px;font-family:\'Outfit\',sans-serif;font-weight:700">'+a.w+' 分</span>';
+}
+
+function openDet(id){
+  var a=getA(id);if(!a)return;
+  var dp=isDpa(a);
+  g('det-ico').textContent=a.e;
+  g('det-ico').className='det-ico '+(dp?'dpa':'pp');
+  g('det-ttl').textContent=a.n;
+  g('det-rows').innerHTML=
+    row('エリア',es(a.ar))
+    +row('現在の待ち時間',wdisp(a))
+    +row('パスの種類',dp?'DPA（有料）':'プライオリティパス（無料）')
+    +row('料金',es(a.pr))
+    +(a.ht?row('身長制限',a.ht):'')
+    +row('子連れ',a.kid?'◎ おすすめ':'△ 要確認');
+  g('det-hint').textContent=a.note;
+  g('det').classList.add('open');
+  g('ov').classList.add('open');
+}
+function row(l,v){
+  return '<div class="drow"><span class="dlbl">'+l+'</span><span class="dval">'+v+'</span></div>';
+}
+function closeDet(){g('det').classList.remove('open');g('ov').classList.remove('open')}
+g('ov').addEventListener('click',closeDet);
+g('xbtn').addEventListener('click',closeDet);
+
+/* ===== TIMER ===== */
+function mkSel(t){
+  var list=t==='dpa'?D[pk].dpa:D[pk].pp;
+  return '<select class="tmr-sel" id="sel-'+t+'">'
+    +'<option value="">アトラクションを選択（任意）</option>'
+    +list.map(function(a){return '<option value="'+a.i+'">'+a.e+' '+es(a.n)+'</option>'}).join('')
+    +'</select>';
+}
+
+function startWithSel(t){
+  var sel=g('sel-'+t);var nm='',e='';
+  if(sel&&sel.value){
+    var all=D.tdl.dpa.concat(D.tdl.pp,D.tds.dpa,D.tds.pp);
+    for(var i=0;i<all.length;i++){
+      if(String(all[i].i)===sel.value){nm=all[i].n;e=all[i].e;break}
+    }
+  }
+  startTimer(t,nm,e);
+}
+
+function startTimer(t,nm,e){
+  var s=TS[t];if(s)clearInterval(s.tid);
+  var endAt=Date.now()+DUR[t]*1000;
+  var tid=setInterval(function(){tick(t)},1000);
+  TS[t]={endAt:endAt,tid:tid,n3:false,nd:false,nm:nm||'',e:e||''};
+
+  /* SW経由でバックグラウンド通知をスケジュール */
+  var lbl=t==='dpa'?'DPA':'プライオリティパス';
+  var an=nm||lbl;
+  var delay3 = DUR[t]*1000 - 180*1000; /* 3分前 */
+  var delayDone = DUR[t]*1000;          /* 完了時 */
+  reqPerm(function(granted){
+    if(!granted)return;
+    if(delay3>0){
+      scheduleNotify(delay3,
+        '\u23F0 あと3分！ '+an,
+        ft(new Date(endAt))+' に次が取得できます',
+        'tdr-'+t+'-3min');
+    }
+    scheduleNotify(delayDone,
+      '\u{1F389} 次の'+lbl+'を取得できます！',
+      an+' の次を購入しましょう',
+      'tdr-'+t+'-done');
+  });
+
+  drawTimer(t);
+}
+
+function resetTimer(t){
+  var s=TS[t];if(s)clearInterval(s.tid);
+  TS[t]=null;drawTimer(t);
+}
+
+function tick(t){
+  var s=TS[t];if(!s)return;
+  var rem=Math.max(0,Math.round((s.endAt-Date.now())/1000));
+  var lbl=t==='dpa'?'DPA':'プライオリティパス';
+  var an=s.nm||lbl;
+  if(!s.n3&&rem<=180&&rem>0){
+    s.n3=true;
+    var nt=ft(new Date(s.endAt));
+    pushN('\u23F0 あと3分！ '+an,nt+' に次が取得できます');
+    showBnr('\u23F0','あと3分！ '+an,nt+' に次が取得できます');
+  }
+  if(!s.nd&&rem===0){
+    s.nd=true;clearInterval(s.tid);
+    pushN('\u{1F389} 次の'+lbl+'を取得できます！',an+' の次を購入しましょう');
+    showBnr('\u{1F389}','次の'+lbl+'を取得できます！',an+' の次を購入しましょう');
+  }
+  drawTimer(t);
+}
+
+function drawTimer(t){
+  var s=TS[t],body=g('body-'+t),wid=g('tmr-'+t),dur=DUR[t];
+  var goL=t==='dpa'?'\u25B6 今購入した':'\u25B6 今取得した';
+  if(!s){
+    wid.className='tmr '+t;
+    body.innerHTML=mkSel(t)
+      +'<button class="tmr-go '+t+'" id="go-'+t+'">'+goL+'</button>';
+    var btn=g('go-'+t);
+    if(btn)btn.addEventListener('click',function(){startWithSel(t)});
+    return;
+  }
+  var rem=Math.max(0,Math.round((s.endAt-Date.now())/1000));
+  var prog=Math.min(100,Math.round(((dur-rem)/dur)*100));
+  var done=rem===0,a3=!done&&rem<=180,nt=new Date(s.endAt);
+  var atag=s.nm?'<div class="tmr-atag">'+(s.e?s.e+' ':'')+es(s.nm)+'</div>':'';
+  wid.className='tmr '+t+(done?' done':'');
+
+  if(done){
+    var sd=s;
+    body.innerHTML=atag
+      +'<div class="tmr-ok '+t+'">\u{1F389} 今すぐ取得できます！</div>'
+      +'<div class="tmr-bar"><div class="tmr-bar-f '+t+'" style="width:100%"></div></div>'
+      +'<div class="tmr-2btn">'
+      +'<button class="tmr-go '+t+'" id="go-'+t+'">'+(t==='dpa'?'\u25B6 また購入した':'\u25B6 また取得した')+'</button>'
+      +'<button class="tmr-clr" id="clr-'+t+'">クリア</button></div>';
+    var sb=g('go-'+t),cb=g('clr-'+t);
+    if(sb)sb.addEventListener('click',function(){startTimer(t,sd.nm,sd.e)});
+    if(cb)cb.addEventListener('click',function(){resetTimer(t)});
+  }else{
+    var sr=s;
+    var mn=String(Math.floor(rem/60)),sc=String(rem%60).padStart(2,'0');
+    var ic=a3?'tmr-info alert '+t:'tmr-info';
+    var im=a3?'\u26A0 まもなく取得可能！ \u2192 <b>'+ft(nt)+'</b>'
+      :(t==='dpa'?'次のDPA購入可能時刻':'次の取得可能時刻')+' \u2192 <b>'+ft(nt)+'</b>';
+    body.innerHTML=atag
+      +'<div class="tmr-disp"><div class="tmr-cnt '+t+' run">'+mn
+      +'<span style="font-size:22px;opacity:.6">:</span>'+sc+'</div>'
+      +'<div class="tmr-unit">後に取得可</div></div>'
+      +'<div class="tmr-bar"><div class="tmr-bar-f '+t+'" style="width:'+prog+'%"></div></div>'
+      +'<div class="'+ic+'">'+im+'</div>'
+      +'<button class="tmr-go '+t+'" id="go-'+t+'">'+goL+'（リスタート）</button>';
+    var bb=g('go-'+t);
+    if(bb)bb.addEventListener('click',function(){startTimer(t,sr.nm,sr.e)});
+  }
+}
+
+g('rst-dpa').addEventListener('click',function(){resetTimer('dpa')});
+g('rst-pp').addEventListener('click',function(){resetTimer('pp')});
+
+/* ===== NOTIFICATIONS ===== */
+var swReg = null;
+
+/* Service Worker 登録 */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').then(function(reg) {
+    swReg = reg;
+  }).catch(function(){});
+}
+
+/* 通知許可を求める（ユーザー操作後に呼ぶ） */
+function reqPerm(cb) {
+  if (typeof Notification === 'undefined') { if(cb)cb(false); return; }
+  if (Notification.permission === 'granted') { if(cb)cb(true); return; }
+  if (Notification.permission === 'denied')  { if(cb)cb(false); return; }
+  Notification.requestPermission().then(function(p){ if(cb)cb(p==='granted'); }).catch(function(){ if(cb)cb(false); });
+}
+
+/* SW経由でdelayMs後に通知をスケジュール */
+function scheduleNotify(delayMs, title, body, tag) {
+  if (!swReg) return;
+  swReg.active && swReg.active.postMessage({
+    type: 'SCHEDULE_NOTIFY',
+    delayMs: delayMs,
+    title: title,
+    body: body,
+    tag: tag || 'tdr-timer'
+  });
+}
+
+/* 即時通知（フォアグラウンド用） */
+function pushN(title, body) {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'granted') {
+    try { new Notification(title, { body: body, icon: './icon-192.png' }); } catch(e) {}
+  }
+}
+function showBnr(ico,title,body){
+  var old=document.getElementById('bnr');if(old)old.parentNode.removeChild(old);
+  if(bt)clearTimeout(bt);
+  var el=document.createElement('div');el.id='bnr';el.className='bnr';
+  el.innerHTML='<div class="bnr-ico">'+ico+'</div><div class="bnr-tx">'
+    +'<div class="bnr-t">'+es(title)+'</div><div class="bnr-b">'+es(body)+'</div></div>';
+  el.addEventListener('click',function(){dimBnr(el)});
+  document.body.appendChild(el);
+  bt=setTimeout(function(){dimBnr(el)},6000);
+}
+function dimBnr(el){
+  if(!el||!el.parentNode)return;
+  el.classList.add('hide');
+  setTimeout(function(){if(el.parentNode)el.parentNode.removeChild(el)},300);
+}
+/* ===== AUTO REFRESH 5min ===== */
+setInterval(function(){loadWT()},300000);
+
+/* ===== INIT ===== */
+updHdr();
+drawTimer('dpa');
+drawTimer('pp');
+loadWT();
+
+})();
+</script>
+</body>
+</html>
